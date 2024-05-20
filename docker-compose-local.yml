@@ -1,0 +1,13 @@
+version: "1.0"
+services:
+  postgres:
+    image: postgres:16.2-alpine
+    container_name: postgres
+    env_file:
+      - .env
+    ports:
+      - 5434:5434
+    command:
+      - "postgres"
+      - "-c"
+      - "port=5434"

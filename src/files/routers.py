@@ -1,21 +1,16 @@
-from pathlib import Path
+from flask import Blueprint, jsonify, request
 
-from flask import Flask, jsonify, request
-
-from src.config import Config
 from src.files.injectors import Injector
 
-app = Flask(__name__)
-
-Path(Config.STORAGE_PATH).mkdir(parents=True, exist_ok=True) if Config.DOCKER == 'False' else None
+router = Blueprint('router', __name__)
 
 
-@app.get("/")
+@router.get("/")
 def get_all_files_infos():
     return jsonify(Injector.storage().get_all_files_infos())
 
 
-@app.get("/file")
+@router.get("/file")
 def get_file_info():
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
@@ -25,7 +20,7 @@ def get_file_info():
     return jsonify(Injector.file().get_file_info(file_path))
 
 
-@app.post("/upload")
+@router.post("/upload")
 def upload_file():
     """
     Path example: /pics/cats/ or /\n
@@ -41,7 +36,7 @@ def upload_file():
     return {201: 'File upload successfully.'}
 
 
-@app.delete("/delete")
+@router.delete("/delete")
 def delete_file():
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
@@ -51,7 +46,7 @@ def delete_file():
     return jsonify(Injector.file().delete_file(file_path))
 
 
-@app.get("/path")
+@router.get("/path")
 def get_files_infos_by_path():
     """
     Path example: /pics/cats/\n
@@ -61,7 +56,7 @@ def get_files_infos_by_path():
     return jsonify(Injector.storage().get_files_infos_by_path(path))
 
 
-@app.get("/download")
+@router.get("/download")
 def download_file():
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
@@ -71,7 +66,7 @@ def download_file():
     return Injector.file().download_file(file_path)
 
 
-@app.patch("/update")
+@router.patch("/update")
 def update_file_info():
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
@@ -85,10 +80,6 @@ def update_file_info():
     return jsonify(Injector.file().update_file_info(file_path, new_name, new_path, new_comment))
 
 
-@app.get("/sync")
+@router.get("/sync")
 def sync_db_with_storage():
     return jsonify(Injector.storage().sync_db_with_storage())
-
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)

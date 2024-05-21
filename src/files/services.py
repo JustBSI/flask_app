@@ -2,13 +2,13 @@ from shutil import copyfileobj
 from datetime import datetime
 from pathlib import Path
 
-from flask import send_file
+from flask import send_file, Response
 from sqlalchemy import select, insert, delete, update
 
 from src.files.models import File
 from src.files.schemas import FileModel
 from src.database import DbRequest
-from src.files.errors import Error
+from src.files.errors import NoFileFound, NoFileCheckPath, FileAlreadyExist
 
 
 class BaseService:
@@ -26,17 +26,17 @@ class BaseService:
 
         return name, extension, path
 
-    def _check_file_exists(self, file_path: str) -> Path | None:
+    def _check_file_exists(self, file_path: str) -> Path | Exception:
         file_full_path = self.storage / file_path[1:]
         if not file_full_path.is_file():
-            return Error.no_file_found()
+            raise NoFileCheckPath()
         else:
             return file_full_path
 
 
 class FileService(BaseService):
 
-    def get_file_info(self, file_path: str) -> FileModel | dict:
+    def get_file_info(self, file_path: str) -> any:
         name, extension, path = self._file_path_to_attr(file_path)
 
         query = select(File).where(File.name == name, File.extension == extension, File.path == path)
@@ -45,17 +45,18 @@ class FileService(BaseService):
         result = result.scalars().first()
 
         if not result:
-            return Error.no_file_check_path()
+            raise NoFileCheckPath()
 
         return result
 
-    def upload_file(self, file: any, path: str = '/', comment: str | None = None, exist_ok: bool = False) -> None:
+    def upload_file(self, file: any, path: str = '/', comment: str | None = None, exist_ok: bool = False) -> tuple[
+                    dict[int, str], int] | Exception:
         full_path = self.storage / path[1:]
         full_path.mkdir(parents=True, exist_ok=True)
         file_full_path = full_path / file.filename
         updated_at = None if not file_full_path.exists() else datetime.now()
         if file_full_path.exists() and not exist_ok:
-            return Error.file_already_exist()
+            raise FileAlreadyExist()
 
         with open(file_full_path, 'wb') as f:
             copyfileobj(file, f)
@@ -77,9 +78,10 @@ class FileService(BaseService):
             stmt = insert(File).values(**file_info)
         self.db.execute_stmt(stmt)
 
-    def delete_file(self, file_path: str) -> dict[int, str]:
+        return ({200: 'File updated successfully.'}, 200) if updated_at else ({201: 'File uploaded successfully.'}, 201)
+
+    def delete_file(self, file_path: str) -> tuple[dict[int, str], int] | Exception:
         file_full_path = self._check_file_exists(file_path)
-        print(file_full_path)
 
         name, extension, path = self._file_path_to_attr(file_path)
         stmt = delete(File).where(File.name == name, File.extension == extension, File.path == path)
@@ -88,15 +90,15 @@ class FileService(BaseService):
 
         self.db.execute_stmt(stmt)
 
-        return {204: 'File deleted successfully.'}
+        return {204: 'File deleted successfully.'}, 204
 
-    def download_file(self, file_path: str) -> any:
+    def download_file(self, file_path: str) -> Response | Exception:
         file_full_path = self._check_file_exists(file_path)
 
         return send_file(file_full_path, as_attachment=True)
 
     def update_file_info(self, file_path: str, new_name: str | None = None, new_path: str | None = None,
-                         new_comment: str | None = None) -> dict[int, str]:
+                         new_comment: str | None = None) -> dict[int, str] | Exception:
         full_file_path = self._check_file_exists(file_path)
 
         file_info = self.get_file_info(file_path)
@@ -127,17 +129,17 @@ class StorageService(BaseService):
         result = result.scalars().all()
 
         if not result:
-            return Error.no_file_found()
+            raise NoFileFound()
 
         return result
 
-    def get_files_infos_by_path(self, path: str = '/') -> list[FileModel]:
+    def get_files_infos_by_path(self, path: str = '/') -> list[FileModel] | Exception:
         query = select(File).where(File.path == path)
         result = self.db.execute_query(query)
         result = result.scalars().all()
 
         if not result:
-            return Error.no_file_check_path()
+            raise NoFileFound()
 
         return result
 
@@ -169,4 +171,5 @@ class StorageService(BaseService):
                                            size=file_data['size'],
                                            path=file_data['path'])
                 self.db.execute_stmt(stmt)
+
         return {200: 'Sync successfully.'}

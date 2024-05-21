@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from src.files.errors import NoFileFound, NoFileCheckPath, FileAlreadyExist
 from src.files.injectors import Injector
 
 router = Blueprint('router', __name__)
@@ -7,7 +8,7 @@ router = Blueprint('router', __name__)
 
 @router.get("/")
 def get_all_files_infos():
-    return jsonify(Injector.storage().get_all_files_infos())
+    return Injector.storage().get_all_files_infos()
 
 
 @router.get("/file")
@@ -29,11 +30,10 @@ def upload_file():
     """
     file = request.files['file']
     path = request.args.get("path") or '/'
-    comment = request.args.get("comment")
+    comment = request.args.get("comment") or None
     exist_ok = request.args.get("exist_ok") or False
-    Injector.file().upload_file(file, path, comment, exist_ok)
 
-    return {201: 'File upload successfully.'}
+    return Injector.file().upload_file(file, path, comment, exist_ok)
 
 
 @router.delete("/delete")
@@ -43,7 +43,8 @@ def delete_file():
     '/' path means storage path.
     """
     file_path = request.args.get("file_path")
-    return jsonify(Injector.file().delete_file(file_path))
+
+    return Injector.file().delete_file(file_path)
 
 
 @router.get("/path")
@@ -53,7 +54,8 @@ def get_files_infos_by_path():
     '/' path means storage path.
     """
     path = request.args.get("path") or '/'
-    return jsonify(Injector.storage().get_files_infos_by_path(path))
+
+    return Injector.storage().get_files_infos_by_path(path)
 
 
 @router.get("/download")
@@ -63,6 +65,7 @@ def download_file():
     '/' path means storage path.
     """
     file_path = request.args.get("file_path")
+
     return Injector.file().download_file(file_path)
 
 
@@ -74,12 +77,28 @@ def update_file_info():
     If new_path is None, file will be updated without change path.
     """
     file_path = request.args.get("file_path")
-    new_name = request.args.get("new_name")
-    new_path = request.args.get("new_path")
-    new_comment = request.args.get("new_comment")
-    return jsonify(Injector.file().update_file_info(file_path, new_name, new_path, new_comment))
+    new_name = request.args.get("new_name") or None
+    new_path = request.args.get("new_path") or None
+    new_comment = request.args.get("new_comment") or None
+
+    return Injector.file().update_file_info(file_path, new_name, new_path, new_comment)
 
 
 @router.get("/sync")
 def sync_db_with_storage():
-    return jsonify(Injector.storage().sync_db_with_storage())
+    return Injector.storage().sync_db_with_storage()
+
+
+@router.errorhandler(NoFileFound)
+def no_file_found(e):
+    return {e.status_code: e.message}, e.status_code
+
+
+@router.errorhandler(NoFileCheckPath)
+def no_file_check_path(e):
+    return {e.status_code: e.message}, e.status_code
+
+
+@router.errorhandler(FileAlreadyExist)
+def file_already_exist(e):
+    return {e.status_code: e.message}, e.status_code

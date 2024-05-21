@@ -1,21 +1,22 @@
-from src.files.strings import ExceptionStrings
+from .strings import ExceptionStrings
 
 
-class Error(Exception, ExceptionStrings):
-    @classmethod
-    def no_file_found(cls):
-        return {
-            404: cls.NO_FILE_FOUND
-        }
+class NoFileFound(Exception, ExceptionStrings):
+    def __init__(self, status_code=404, message=ExceptionStrings.NO_FILE_FOUND):
+        super().__init__()
+        self.status_code = status_code
+        self.message = message
 
-    @classmethod
-    def no_file_check_path(cls):
-        return {
-            404: cls.NO_FILE_CHECK_PATH
-        }
 
-    @classmethod
-    def file_already_exist(cls):
-        return {
-            409: cls.FILE_ALREADY_EXIST
-        }
+class NoFileCheckPath(Exception, ExceptionStrings):
+    def __init__(self, status_code=404, message=ExceptionStrings.NO_FILE_CHECK_PATH):
+        super().__init__()
+        self.status_code = status_code
+        self.message = message
+
+
+class FileAlreadyExist(Exception, ExceptionStrings):
+    def __init__(self, status_code=409, message=ExceptionStrings.FILE_ALREADY_EXIST):
+        super().__init__()
+        self.status_code = status_code
+        self.message = message

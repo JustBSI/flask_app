@@ -26,7 +26,7 @@ class BaseService:
 
         return name, extension, path
 
-    def _check_file_exists(self, file_path: str) -> Path | Exception:
+    def _check_file_exists(self, file_path: str) -> Path:
         file_full_path = self.storage / file_path[1:]
         if not file_full_path.is_file():
             raise NoFileCheckPath()
@@ -46,11 +46,11 @@ class FileService(BaseService):
 
         if not result:
             raise NoFileCheckPath()
-
-        return result
+        else:
+            return result
 
     def upload_file(self, file: any, path: str = '/', comment: str | None = None, exist_ok: bool = False) -> tuple[
-                    dict[int, str], int] | Exception:
+                    dict[int, str], int]:
         full_path = self.storage / path[1:]
         full_path.mkdir(parents=True, exist_ok=True)
         file_full_path = full_path / file.filename
@@ -80,25 +80,25 @@ class FileService(BaseService):
 
         return ({200: 'File updated successfully.'}, 200) if updated_at else ({201: 'File uploaded successfully.'}, 201)
 
-    def delete_file(self, file_path: str) -> tuple[dict[int, str], int] | Exception:
+    def delete_file(self, file_path: str) -> tuple[dict[int, str], int]:
         file_full_path = self._check_file_exists(file_path)
 
         name, extension, path = self._file_path_to_attr(file_path)
         stmt = delete(File).where(File.name == name, File.extension == extension, File.path == path)
 
-        file_full_path.unlink()
-
         self.db.execute_stmt(stmt)
+
+        file_full_path.unlink()
 
         return {204: 'File deleted successfully.'}, 204
 
-    def download_file(self, file_path: str) -> Response | Exception:
+    def download_file(self, file_path: str) -> Response:
         file_full_path = self._check_file_exists(file_path)
 
         return send_file(file_full_path, as_attachment=True)
 
     def update_file_info(self, file_path: str, new_name: str | None = None, new_path: str | None = None,
-                         new_comment: str | None = None) -> dict[int, str] | Exception:
+                         new_comment: str | None = None) -> tuple[dict[int, str], int]:
         full_file_path = self._check_file_exists(file_path)
 
         file_info = self.get_file_info(file_path)
@@ -119,7 +119,7 @@ class FileService(BaseService):
 
         self.db.execute_stmt(stmt)
 
-        return {200: 'File updated successfully.'}
+        return {200: 'File updated successfully.'}, 200
 
 
 class StorageService(BaseService):
@@ -130,20 +130,20 @@ class StorageService(BaseService):
 
         if not result:
             raise NoFileFound()
+        else:
+            return result
 
-        return result
-
-    def get_files_infos_by_path(self, path: str = '/') -> list[FileModel] | Exception:
+    def get_files_infos_by_path(self, path: str = '/') -> list[FileModel]:
         query = select(File).where(File.path == path)
         result = self.db.execute_query(query)
         result = result.scalars().all()
 
         if not result:
             raise NoFileFound()
+        else:
+            return result
 
-        return result
-
-    def sync_db_with_storage(self) -> dict[int, str]:
+    def sync_db_with_storage(self) -> tuple[dict[int, str], int]:
         files_in_db = self.db.execute_query(select(File))
         files_in_db = files_in_db.scalars().all() if files_in_db else []
         files_in_db = {Path(file.path) / (file.name + file.extension) for file in files_in_db}
@@ -163,13 +163,14 @@ class StorageService(BaseService):
                     'name': file.stem,
                     'extension': file.suffix,
                     'size': file.stat().st_size,
-                    'path': '/' if file.parent == self.storage else '/' + '/'.join(
-                        file.parts[len(self.storage.parts):-1]) + '/'
+                    'path': '/' if file.parent == self.storage
+                            else '/' + '/'.join(file.parts[len(self.storage.parts):-1]) + '/'
                 }
+
                 stmt = insert(File).values(name=file_data['name'],
                                            extension=file_data['extension'],
                                            size=file_data['size'],
                                            path=file_data['path'])
                 self.db.execute_stmt(stmt)
 
-        return {200: 'Sync successfully.'}
+        return {200: 'Sync successfully.'}, 200

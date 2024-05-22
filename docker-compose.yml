@@ -1,7 +1,7 @@
 version: "3.0"
 services:
   postgres:
-    image: postgres:16.2-alpine
+    image: postgres:alpine
     container_name: postgres
     env_file:
       - .env
@@ -28,5 +28,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: on-failure
     volumes:
       - ${STORAGE_PATH}:${DOCKER_PATH}

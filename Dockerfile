@@ -1,11 +1,7 @@
-FROM python:3.12.3-slim
-
-RUN mkdir /app
+FROM python:slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY . /app
 
 RUN pip install -r requirements.txt
-
-COPY . .

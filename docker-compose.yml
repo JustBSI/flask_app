@@ -24,10 +24,11 @@ services:
     container_name: app
     ports:
       - "5000:5000"
-    command: alembic upgrade head
     depends_on:
       postgres:
         condition: service_healthy
+    command: alembic upgrade head
     restart: on-failure
     volumes:
       - ${STORAGE_PATH}:${DOCKER_PATH}
+      - /Users/just_bsi/PycharmProjects/flask_app/src:/app/src

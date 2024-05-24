@@ -1,22 +1,19 @@
-from .strings import ExceptionStrings
-
-
-class NoFileFound(Exception, ExceptionStrings):
-    def __init__(self, status_code=404, message=ExceptionStrings.NO_FILE_FOUND):
+class NoFileFound(Exception):
+    def __init__(self, status_code=404, message="No file found."):
         super().__init__()
         self.status_code = status_code
         self.message = message
 
 
-class NoFileCheckPath(Exception, ExceptionStrings):
-    def __init__(self, status_code=404, message=ExceptionStrings.NO_FILE_CHECK_PATH):
+class NoFileCheckPath(Exception):
+    def __init__(self, status_code=404, message="File not found, check path."):
         super().__init__()
         self.status_code = status_code
         self.message = message
 
 
-class FileAlreadyExist(Exception, ExceptionStrings):
-    def __init__(self, status_code=409, message=ExceptionStrings.FILE_ALREADY_EXIST):
+class FileAlreadyExist(Exception):
+    def __init__(self, status_code=409, message="File already exists."):
         super().__init__()
         self.status_code = status_code
         self.message = message

@@ -1,7 +1,7 @@
 version: "3.0"
 services:
   postgres:
-    image: postgres:alpine
+    image: postgres:16.3-alpine
     container_name: postgres
     env_file:
       - .env
@@ -18,7 +18,7 @@ services:
       retries: 5
 
   app:
-    build: .
+    image: app:test
     env_file:
       - .env
     container_name: app
@@ -27,8 +27,5 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: alembic upgrade head
-    restart: on-failure
     volumes:
-      - ${STORAGE_PATH}:${DOCKER_PATH}
       - /Users/just_bsi/PycharmProjects/flask_app/src:/app/src

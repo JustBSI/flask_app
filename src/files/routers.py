@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
-from src.files.errors import NoFileFound, NoFileCheckPath, FileAlreadyExist
-from src.files.injectors import Injector
+from files.errors import NoFileFound, NoFileCheckPath, FileAlreadyExist
+from files.injectors import Injector
 
 router = Blueprint('router', __name__)
 
@@ -81,7 +81,10 @@ def update_file_info():
     new_path = request.args.get("new_path") or None
     new_comment = request.args.get("new_comment") or None
 
-    return Injector.file().update_file_info(file_path, new_name, new_path, new_comment)
+    return Injector.file().update_file_info(file_path,
+                                            new_name,
+                                            new_path,
+                                            new_comment)
 
 
 @router.get("/sync")
@@ -90,15 +93,7 @@ def sync_db_with_storage():
 
 
 @router.errorhandler(NoFileFound)
-def no_file_found(e):
-    return {e.status_code: e.message}, e.status_code
-
-
 @router.errorhandler(NoFileCheckPath)
-def no_file_check_path(e):
-    return {e.status_code: e.message}, e.status_code
-
-
 @router.errorhandler(FileAlreadyExist)
-def file_already_exist(e):
+def exception(e):
     return {e.status_code: e.message}, e.status_code

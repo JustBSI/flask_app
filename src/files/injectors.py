@@ -1,5 +1,5 @@
-from src.files.services import StorageService as Storage, FileService as File
-from src.config import Config
+from files.services import StorageService as Storage, FileService as File
+from config import Config
 
 
 class Injector:

@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from src.config import Config
+from config import Config
 
 engine = create_engine(Config.DATABASE_URL)
 session_maker = sessionmaker(engine, expire_on_commit=False, class_=Session)

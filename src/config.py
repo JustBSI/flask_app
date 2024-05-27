@@ -22,4 +22,4 @@ class Config:
                              f":{self.port}/{self.name}")
 
 
-config: Config = factory.load(yaml.safe_load(open("config.yaml", "r")), Config)
+config: Config = factory.load(yaml.safe_load(open("../config.yaml", "r")), Config)

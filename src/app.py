@@ -12,8 +12,8 @@ app.register_blueprint(router)
 
 Path(config.storage_path).mkdir(parents=True, exist_ok=True)
 
-command.upgrade(AlembicConfig("./alembic.ini"), "head")
+command.upgrade(AlembicConfig("../alembic.ini"), "head")
 
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=80)

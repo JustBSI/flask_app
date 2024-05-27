@@ -1,4 +1,4 @@
-FROM python:3.12.3-slim
+FROM python:3.12.3
 
 WORKDIR /app
 
@@ -8,4 +8,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["python", "/app/src/app.py"]
+WORKDIR /app/src
+
+CMD uwsgi --ini ../uwsgi.ini

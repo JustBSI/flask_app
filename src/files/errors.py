@@ -1,19 +1,19 @@
+from dataclasses import dataclass
+
+
+@dataclass
 class NoFileFound(Exception):
-    def __init__(self, status_code=404, message="No file found."):
-        super().__init__()
-        self.status_code = status_code
-        self.message = message
+    status_code: int = 404
+    message: str = "No file found."
 
 
+@dataclass
 class NoFileCheckPath(Exception):
-    def __init__(self, status_code=404, message="File not found, check path."):
-        super().__init__()
-        self.status_code = status_code
-        self.message = message
+    status_code: int = 404
+    message: str = "File not found, check path."
 
 
+@dataclass
 class FileAlreadyExist(Exception):
-    def __init__(self, status_code=409, message="File already exists."):
-        super().__init__()
-        self.status_code = status_code
-        self.message = message
+    status_code: int = 409
+    message: str = "File already exists."

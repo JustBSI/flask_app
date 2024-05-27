@@ -1,15 +1,25 @@
-import os
-from dotenv import load_dotenv
+from dataclasses import dataclass, field
 
-load_dotenv()
+import yaml
+from dataclass_factory import Factory
+
+factory = Factory()
 
 
+@dataclass
 class Config:
-    DB_HOST = os.environ.get("DB_HOST")
-    DB_PORT = os.environ.get("DB_PORT")
-    DB_NAME = os.environ.get("DB_NAME")
-    DB_USER = os.environ.get("DB_USER")
-    DB_PASS = os.environ.get("DB_PASS")
-    STORAGE_PATH = os.environ.get("STORAGE_PATH")
-    DATABASE_URL = (f"postgresql://"
-                    f"{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+    host: str
+    port: int
+    name: str
+    user: str
+    password: str
+    storage_path: str
+    database_url: str = field(init=False, repr=True)
+
+    def __post_init__(self):
+        self.database_url = (f"postgresql://"
+                             f"{self.user}:{self.password}@{self.host}"
+                             f":{self.port}/{self.name}")
+
+
+config: Config = factory.load(yaml.safe_load(open("config.yaml", "r")), Config)

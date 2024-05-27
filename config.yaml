@@ -1,0 +1,6 @@
+host: postgres
+port: 5434
+name: postgres
+user: postgres
+password: postgres
+storage_path: /storage/

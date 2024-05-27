@@ -3,9 +3,9 @@ from typing import Any
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from config import Config
+from config import config
 
-engine = create_engine(Config.DATABASE_URL)
+engine = create_engine(config.database_url)
 session_maker = sessionmaker(engine, expire_on_commit=False, class_=Session)
 
 

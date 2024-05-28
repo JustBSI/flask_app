@@ -34,9 +34,6 @@ class BaseService:
         else:
             return file_full_path
 
-
-class FileService(BaseService):
-
     def get_file_info(self, file_path: str) -> any:
         name, extension, path = self._file_path_to_attr(file_path)
 
@@ -50,6 +47,9 @@ class FileService(BaseService):
             raise NoFileCheckPath()
         else:
             return result
+
+
+class FileService(BaseService):
 
     def upload_file(self, file: any, path: str = '/',
                     comment: str | None = None,
@@ -89,7 +89,7 @@ class FileService(BaseService):
                                            + file_info['extension'])
 
         if updated_at:
-            return new_file_info, 200
+            return new_file_info
         else:
             return new_file_info, 201
 
@@ -106,7 +106,7 @@ class FileService(BaseService):
         self.db.execute_stmt(stmt)
 
         file_full_path.unlink()
-        return file_info, 200
+        return file_info
 
     def download_file(self, file_path: str) -> Response:
         file_full_path = self._check_file_exists(file_path)
@@ -149,7 +149,7 @@ class FileService(BaseService):
 
         new_file_info = self.get_file_info(new_path)[0]
 
-        return new_file_info, 200
+        return new_file_info
 
 
 class StorageService(BaseService):
@@ -171,16 +171,18 @@ class StorageService(BaseService):
         else:
             return result
 
-    def sync_db_with_storage(self) -> tuple:
-        files_in_db = self.db.execute_query(select(File))
-        files_in_db = files_in_db or []
+    def sync_db_with_storage(self) -> any:
+        deleted_files, added_files = [], []
+        files_in_db_full = self.db.execute_query(select(File)) or []
         files_in_db = {Path(file.path) / (file.name + file.extension)
-                       for file in files_in_db}
+                       for file in files_in_db_full}
         files_in_storage = set(self.storage.rglob('*.*'))
 
-        for file in files_in_db:
-            if self.storage / str(file)[1:] not in files_in_storage:
-                name, extension, path = self._file_path_to_attr(file)
+        for file_path, file_info in zip(files_in_db, files_in_db_full):
+            if self.storage / str(file_path)[1:] not in files_in_storage:
+                name, extension, path = self._file_path_to_attr(file_path)
+
+                deleted_files.append(file_info)
 
                 stmt = (delete(File)
                         .where(File.name == name,
@@ -209,4 +211,8 @@ class StorageService(BaseService):
                                 path=file_data['path']))
                 self.db.execute_stmt(stmt)
 
-        return {200: 'Sync successfully.'}, 200
+                added_files.append(self.get_file_info(file_data['path']
+                                                      + file_data['name'] +
+                                                      file_data['extension']))
+
+        return [{'deleted': deleted_files}, {'added': added_files}]

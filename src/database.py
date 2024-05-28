@@ -15,6 +15,7 @@ class DbRequest:
 
     def execute_query(self, query: Any) -> Any | None:
         result = self.session.execute(query)
+        result = result.scalars().all()
         return result
 
     def execute_stmt(self, stmt: Any) -> None:

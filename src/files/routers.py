@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 
 from files.errors import NoFileFound, NoFileCheckPath, FileAlreadyExist
 from files.injectors import Injector
@@ -18,7 +18,7 @@ def get_file_info():
     '/' path means storage path.
     """
     file_path = request.args.get("file_path")
-    return jsonify(Injector.file().get_file_info(file_path))
+    return Injector.file().get_file_info(file_path)
 
 
 @router.post("/upload")

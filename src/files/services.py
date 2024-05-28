@@ -45,7 +45,6 @@ class FileService(BaseService):
                                    File.path == path)
 
         result = self.db.execute_query(query)
-        result = result.scalars().first()
 
         if not result:
             raise NoFileCheckPath()
@@ -85,25 +84,29 @@ class FileService(BaseService):
             stmt = insert(File).values(**file_info)
         self.db.execute_stmt(stmt)
 
+        new_file_info = self.get_file_info(file_info['path']
+                                           + file_info['name']
+                                           + file_info['extension'])
+
         if updated_at:
-            return {200: 'File updated successfully.'}, 200
+            return new_file_info, 200
         else:
-            return {201: 'File uploaded successfully.'}, 201
+            return new_file_info, 201
 
     def delete_file(self, file_path: str) -> tuple:
         file_full_path = self._check_file_exists(file_path)
 
-        name, extension, path = self._file_path_to_attr(file_path)
+        file_info = self.get_file_info(file_path)
+
         stmt = (delete(File)
-                .where(File.name == name,
-                       File.extension == extension,
-                       File.path == path))
+                .where(File.name == file_info[0].name,
+                       File.extension == file_info[0].extension,
+                       File.path == file_info[0].path))
 
         self.db.execute_stmt(stmt)
 
         file_full_path.unlink()
-
-        return {204: 'File deleted successfully.'}, 204
+        return file_info, 200
 
     def download_file(self, file_path: str) -> Response:
         file_full_path = self._check_file_exists(file_path)
@@ -116,7 +119,7 @@ class FileService(BaseService):
                          new_comment: str | None = None) -> tuple:
         full_file_path = self._check_file_exists(file_path)
 
-        file_info = self.get_file_info(file_path)
+        file_info = self.get_file_info(file_path)[0]
 
         if new_name or new_path or new_comment:
             updated_at = datetime.now()
@@ -131,7 +134,8 @@ class FileService(BaseService):
 
         new_full_path.mkdir(parents=True, exist_ok=True)
 
-        full_file_path.replace(new_full_path/(new_name + file_info.extension))
+        full_file_path.replace(
+            new_full_path / (new_name + file_info.extension))
         stmt = (update(File)
                 .values(name=new_name,
                         path=new_path,
@@ -143,14 +147,15 @@ class FileService(BaseService):
 
         self.db.execute_stmt(stmt)
 
-        return {200: 'File updated successfully.'}, 200
+        new_file_info = self.get_file_info(new_path)[0]
+
+        return new_file_info, 200
 
 
 class StorageService(BaseService):
 
     def get_all_files_infos(self) -> any:
         result = self.db.execute_query(select(File))
-        result = result.scalars().all()
 
         if not result:
             raise NoFileFound()
@@ -160,7 +165,6 @@ class StorageService(BaseService):
     def get_files_infos_by_path(self, path: str = '/') -> any:
         query = select(File).where(File.path == path)
         result = self.db.execute_query(query)
-        result = result.scalars().all()
 
         if not result:
             raise NoFileFound()
@@ -169,7 +173,7 @@ class StorageService(BaseService):
 
     def sync_db_with_storage(self) -> tuple:
         files_in_db = self.db.execute_query(select(File))
-        files_in_db = files_in_db.scalars().all() if files_in_db else []
+        files_in_db = files_in_db or []
         files_in_db = {Path(file.path) / (file.name + file.extension)
                        for file in files_in_db}
         files_in_storage = set(self.storage.rglob('*.*'))

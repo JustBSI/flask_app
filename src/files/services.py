@@ -213,6 +213,7 @@ class StorageService(BaseService):
 
                 added_files.append(self.get_file_info(file_data['path']
                                                       + file_data['name'] +
-                                                      file_data['extension']))
+                                                      file_data[
+                                                          'extension'])[0])
 
-        return [{'deleted': deleted_files}, {'added': added_files}]
+        return {'deleted': deleted_files, 'added': added_files}

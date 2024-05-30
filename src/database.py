@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Executable
 from sqlalchemy.orm import sessionmaker, Session
 
 from config import config
@@ -10,15 +10,15 @@ session_maker = sessionmaker(engine, expire_on_commit=False, class_=Session)
 
 
 class DbRequest:
-    def __init__(self):
+    def __init__(self) -> None:
         self.session = session_maker()
 
-    def execute_query(self, query: Any) -> Any | None:
+    def execute_query(self, query: Executable) -> Any:
         result = self.session.execute(query)
         result = result.scalars().all()
         return result
 
-    def execute_stmt(self, stmt: Any) -> None:
+    def execute_stmt(self, stmt: Executable) -> None:
         self.session.execute(stmt)
         try:
             self.session.commit()

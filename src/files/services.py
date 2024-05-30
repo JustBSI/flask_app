@@ -12,7 +12,7 @@ from files.errors import NoFileFound, NoFileCheckPath, FileAlreadyExist
 
 class BaseService:
 
-    def __init__(self, storage):
+    def __init__(self, storage: str) -> None:
         self.storage = Path(storage)
         self.db = DbRequest()
 
@@ -34,7 +34,7 @@ class BaseService:
         else:
             return file_full_path
 
-    def get_file_info(self, file_path: str) -> any:
+    def get_file_info(self, file_path: str) -> File:
         name, extension, path = self._file_path_to_attr(file_path)
 
         query = select(File).where(File.name == name,
@@ -46,14 +46,14 @@ class BaseService:
         if not result:
             raise NoFileCheckPath()
         else:
-            return result
+            return result[0]
 
 
 class FileService(BaseService):
 
     def upload_file(self, file: any, path: str = '/',
                     comment: str | None = None,
-                    exist_ok: bool = False) -> tuple:
+                    exist_ok: bool = False) -> File:
 
         full_path = self.storage / path[1:]
         full_path.mkdir(parents=True, exist_ok=True)
@@ -88,20 +88,17 @@ class FileService(BaseService):
                                            + file_info['name']
                                            + file_info['extension'])
 
-        if updated_at:
-            return new_file_info
-        else:
-            return new_file_info, 201
+        return new_file_info
 
-    def delete_file(self, file_path: str) -> tuple:
+    def delete_file(self, file_path: str) -> File:
         file_full_path = self._check_file_exists(file_path)
 
         file_info = self.get_file_info(file_path)
 
         stmt = (delete(File)
-                .where(File.name == file_info[0].name,
-                       File.extension == file_info[0].extension,
-                       File.path == file_info[0].path))
+                .where(File.name == file_info.name,
+                       File.extension == file_info.extension,
+                       File.path == file_info.path))
 
         self.db.execute_stmt(stmt)
 
@@ -116,10 +113,10 @@ class FileService(BaseService):
     def update_file_info(self, file_path: str,
                          new_name: str | None = None,
                          new_path: str | None = None,
-                         new_comment: str | None = None) -> tuple:
+                         new_comment: str | None = None) -> File:
         full_file_path = self._check_file_exists(file_path)
 
-        file_info = self.get_file_info(file_path)[0]
+        file_info = self.get_file_info(file_path)
 
         if new_name or new_path or new_comment:
             updated_at = datetime.now()
@@ -147,14 +144,14 @@ class FileService(BaseService):
 
         self.db.execute_stmt(stmt)
 
-        new_file_info = self.get_file_info(new_path)[0]
+        new_file_info = self.get_file_info(new_path)
 
         return new_file_info
 
 
 class StorageService(BaseService):
 
-    def get_all_files_infos(self) -> any:
+    def get_all_files_infos(self) -> list[File]:
         result = self.db.execute_query(select(File))
 
         if not result:
@@ -162,7 +159,7 @@ class StorageService(BaseService):
         else:
             return result
 
-    def get_files_infos_by_path(self, path: str = '/') -> any:
+    def get_files_infos_by_path(self, path: str = '/') -> list[File]:
         query = select(File).where(File.path == path)
         result = self.db.execute_query(query)
 
@@ -171,7 +168,7 @@ class StorageService(BaseService):
         else:
             return result
 
-    def sync_db_with_storage(self) -> any:
+    def sync_db_with_storage(self) -> dict[str, list[File]]:
         deleted_files, added_files = [], []
         files_in_db_full = self.db.execute_query(select(File)) or []
         files_in_db = {Path(file.path) / (file.name + file.extension)
@@ -213,7 +210,6 @@ class StorageService(BaseService):
 
                 added_files.append(self.get_file_info(file_data['path']
                                                       + file_data['name'] +
-                                                      file_data[
-                                                          'extension'])[0])
+                                                      file_data['extension']))
 
         return {'deleted': deleted_files, 'added': added_files}

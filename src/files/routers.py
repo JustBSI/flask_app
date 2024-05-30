@@ -1,28 +1,29 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify, Response
 
 from files.errors import NoFileFound, NoFileCheckPath, FileAlreadyExist
 from files.injectors import Injector
+from files.orm_models import File
 
 router = Blueprint('router', __name__)
 
 
 @router.get("/")
-def get_all_files_infos():
+def get_all_files_infos() -> list[File]:
     return Injector.storage().get_all_files_infos()
 
 
 @router.get("/file")
-def get_file_info():
+def get_file_info() -> Response:
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
     '/' path means storage path.
     """
     file_path = request.args.get("file_path")
-    return Injector.file().get_file_info(file_path)
+    return jsonify(Injector.file().get_file_info(file_path))
 
 
 @router.post("/upload")
-def upload_file():
+def upload_file() -> Response:
     """
     Path example: /pics/cats/ or /\n
     '/' path means storage path.\n
@@ -33,22 +34,22 @@ def upload_file():
     comment = request.args.get("comment") or None
     exist_ok = request.args.get("exist_ok") or False
 
-    return Injector.file().upload_file(file, path, comment, exist_ok)
+    return jsonify(Injector.file().upload_file(file, path, comment, exist_ok))
 
 
 @router.delete("/delete")
-def delete_file():
+def delete_file() -> Response:
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
     '/' path means storage path.
     """
     file_path = request.args.get("file_path")
 
-    return Injector.file().delete_file(file_path)
+    return jsonify(Injector.file().delete_file(file_path))
 
 
 @router.get("/path")
-def get_files_infos_by_path():
+def get_files_infos_by_path() -> list[File]:
     """
     Path example: /pics/cats/\n
     '/' path means storage path.
@@ -59,7 +60,7 @@ def get_files_infos_by_path():
 
 
 @router.get("/download")
-def download_file():
+def download_file() -> Response:
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
     '/' path means storage path.
@@ -70,7 +71,7 @@ def download_file():
 
 
 @router.patch("/update")
-def update_file_info():
+def update_file_info() -> Response:
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
     '/' path or new_path means storage path.\n
@@ -81,19 +82,19 @@ def update_file_info():
     new_path = request.args.get("new_path") or None
     new_comment = request.args.get("new_comment") or None
 
-    return Injector.file().update_file_info(file_path,
-                                            new_name,
-                                            new_path,
-                                            new_comment)
+    return jsonify(Injector.file().update_file_info(file_path,
+                                                    new_name,
+                                                    new_path,
+                                                    new_comment))
 
 
 @router.get("/sync")
-def sync_db_with_storage():
+def sync_db_with_storage() -> dict[str: list[File]]:
     return Injector.storage().sync_db_with_storage()
 
 
 @router.errorhandler(NoFileFound)
 @router.errorhandler(NoFileCheckPath)
 @router.errorhandler(FileAlreadyExist)
-def exception(e):
+def exception(e) -> tuple[dict[int, str], int]:
     return {e.status_code: e.message}, e.status_code

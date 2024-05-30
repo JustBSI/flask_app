@@ -11,7 +11,7 @@ class Base(DeclarativeBase):
 
 @dataclass
 class File(Base):
-    __tablename__ = 'file'
+    __tablename__ = "file"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(nullable=False)
@@ -33,5 +33,5 @@ class File(Base):
                 f'size={self.size!r},'
                 f'path={self.path!r},'
                 f'created_at={self.created_at!r},'
-                f'edited_at={self.updated_at!r},'
+                f'updated_at={self.updated_at!r},'
                 f'comment={self.comment!r}')

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, json
 
 from files.errors import NoFileFound, NoFileCheckPath, FileAlreadyExist
 from files.injectors import Injector
@@ -12,17 +12,12 @@ def get_all_files_infos() -> list[File]:
     return Injector.storage().get_all_files_infos()
 
 
-@router.get("/file")
-def get_file_info() -> Response:
-    """
-    File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
-    '/' path means storage path.
-    """
-    file_path = request.args.get("file_path")
-    return jsonify(Injector.file().get_file_info(file_path))
+@router.get("/<int:file_id>")
+def get_file_info(file_id: int) -> Response:
+    return jsonify(Injector.file().get_file_info(file_id))
 
 
-@router.post("/upload")
+@router.post("/")
 def upload_file() -> Response:
     """
     Path example: /pics/cats/ or /\n
@@ -30,59 +25,47 @@ def upload_file() -> Response:
     If "exist_ok"=True, file will be overwritten if exists, else raise error.
     """
     file = request.files['file']
-    path = request.args.get("path") or '/'
-    comment = request.args.get("comment") or None
-    exist_ok = request.args.get("exist_ok") or False
+    data = json.loads(request.form.get('data'))
+
+    path = data.get("path") or '/'
+    comment = data.get("comment") or None
+    exist_ok = data.get("exist_ok") or False
 
     return jsonify(Injector.file().upload_file(file, path, comment, exist_ok))
 
 
-@router.delete("/delete")
-def delete_file() -> Response:
-    """
-    File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
-    '/' path means storage path.
-    """
-    file_path = request.args.get("file_path")
-
-    return jsonify(Injector.file().delete_file(file_path))
+@router.delete("/<int:file_id>")
+def delete_file(file_id: int) -> Response:
+    return jsonify(Injector.file().delete_file(file_id))
 
 
-@router.get("/path")
-def get_files_infos_by_path() -> list[File]:
+@router.get("/<path:path>")
+def get_files_infos_by_path(path: str) -> list[File]:
     """
     Path example: /pics/cats/\n
     '/' path means storage path.
     """
-    path = request.args.get("path") or '/'
 
     return Injector.storage().get_files_infos_by_path(path)
 
 
-@router.get("/download")
-def download_file() -> Response:
-    """
-    File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
-    '/' path means storage path.
-    """
-    file_path = request.args.get("file_path")
-
-    return Injector.file().download_file(file_path)
+@router.get("/<int:file_id>/download")
+def download_file(file_id: int) -> Response:
+    return Injector.file().download_file(file_id)
 
 
-@router.patch("/update")
-def update_file_info() -> Response:
+@router.patch("/<int:file_id>")
+def update_file_info(file_id: int) -> Response:
     """
     File path example: /pics/cats/Photo.jpg or /Photo.jpg\n
     '/' path or new_path means storage path.\n
     If new_path is None, file will be updated without change path.
     """
-    file_path = request.args.get("file_path")
-    new_name = request.args.get("new_name") or None
-    new_path = request.args.get("new_path") or None
-    new_comment = request.args.get("new_comment") or None
+    new_name = request.json.get("new_name", None)
+    new_path = request.json.get("new_path", None)
+    new_comment = request.json.get("new_comment", None)
 
-    return jsonify(Injector.file().update_file_info(file_path,
+    return jsonify(Injector.file().update_file_info(file_id,
                                                     new_name,
                                                     new_path,
                                                     new_comment))

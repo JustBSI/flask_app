@@ -34,12 +34,9 @@ class BaseService:
         else:
             return file_full_path
 
-    def get_file_info(self, file_path: str) -> File:
-        name, extension, path = self._file_path_to_attr(file_path)
+    def get_file_info(self, file_id: int) -> File:
 
-        query = select(File).where(File.name == name,
-                                   File.extension == extension,
-                                   File.path == path)
+        query = select(File).where(File.id == file_id)
 
         result = self.db.execute_query(query)
 
@@ -84,16 +81,17 @@ class FileService(BaseService):
             stmt = insert(File).values(**file_info)
         self.db.execute_stmt(stmt)
 
-        new_file_info = self.get_file_info(file_info['path']
-                                           + file_info['name']
-                                           + file_info['extension'])
+        query = select(File).where(File.name == file_info['name'],
+                                   File.extension == file_info['extension'],
+                                   File.path == file_info['path'])
+
+        new_file_info = self.db.execute_query(query)[0]
 
         return new_file_info
 
-    def delete_file(self, file_path: str) -> File:
-        file_full_path = self._check_file_exists(file_path)
+    def delete_file(self, file_id: int) -> File:
 
-        file_info = self.get_file_info(file_path)
+        file_info = self.get_file_info(file_id)
 
         stmt = (delete(File)
                 .where(File.name == file_info.name,
@@ -102,21 +100,25 @@ class FileService(BaseService):
 
         self.db.execute_stmt(stmt)
 
-        file_full_path.unlink()
+        (Path(str(self.storage) + file_info.path + file_info.name +
+              file_info.extension)).unlink()
+
         return file_info
 
-    def download_file(self, file_path: str) -> Response:
-        file_full_path = self._check_file_exists(file_path)
+    def download_file(self, file_id: int) -> Response:
+        file_info = self.get_file_info(file_id)
+        file_full_path = Path(
+            str(self.storage) + file_info.path + file_info.name +
+            file_info.extension)
 
         return send_file(file_full_path, as_attachment=True)
 
-    def update_file_info(self, file_path: str,
+    def update_file_info(self, file_id: int,
                          new_name: str | None = None,
                          new_path: str | None = None,
                          new_comment: str | None = None) -> File:
-        full_file_path = self._check_file_exists(file_path)
 
-        file_info = self.get_file_info(file_path)
+        file_info = self.get_file_info(file_id)
 
         if new_name or new_path or new_comment:
             updated_at = datetime.now()
@@ -131,20 +133,24 @@ class FileService(BaseService):
 
         new_full_path.mkdir(parents=True, exist_ok=True)
 
-        full_file_path.replace(
+        file_full_path = Path(
+            str(self.storage) + file_info.path + file_info.name +
+            file_info.extension)
+
+        file_full_path.replace(
             new_full_path / (new_name + file_info.extension))
-        stmt = (update(File)
-                .values(name=new_name,
-                        path=new_path,
-                        comment=new_comment,
-                        updated_at=updated_at)
+
+        stmt = (update(File).values(name=new_name,
+                                    path=new_path,
+                                    comment=new_comment,
+                                    updated_at=updated_at)
                 .where(File.name == file_info.name,
                        File.extension == file_info.extension,
                        File.path == file_info.path))
 
         self.db.execute_stmt(stmt)
 
-        new_file_info = self.get_file_info(new_path)
+        new_file_info = self.get_file_info(file_id)
 
         return new_file_info
 
@@ -160,7 +166,7 @@ class StorageService(BaseService):
             return result
 
     def get_files_infos_by_path(self, path: str = '/') -> list[File]:
-        query = select(File).where(File.path == path)
+        query = select(File).where(File.path == '/' + path)
         result = self.db.execute_query(query)
 
         if not result:
@@ -208,8 +214,13 @@ class StorageService(BaseService):
                                 path=file_data['path']))
                 self.db.execute_stmt(stmt)
 
-                added_files.append(self.get_file_info(file_data['path']
-                                                      + file_data['name'] +
-                                                      file_data['extension']))
+                query = (select(File)
+                         .where(File.path == file_data['path'],
+                                File.extension == file_data['extension'],
+                                File.name == file_data['name']))
+
+                file_info = self.db.execute_query(query)[0]
+
+                added_files.append(file_info)
 
         return {'deleted': deleted_files, 'added': added_files}
